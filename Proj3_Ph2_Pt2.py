@@ -1,18 +1,22 @@
-# This is a sample Python script.
+#Project 3 Phase 2 Part 2
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# NOTE: Code accepts inputs in meters.  Robot variables are multiplied by 100 to convert to centimeters.
+# All calculations are in centimeters and minutes
+
 import cv2
 import numpy as np
 import heapq
 import math
 import time
 
-
+# Applies RPM1 to right wheel only for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def zero_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -27,6 +31,8 @@ def zero_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         delta_y = 0.5 * r * (UL + UR) * round(math.sin(new_theta), 5) * dt
         delta_theta = (r / L) * (UR - UL) * dt
         cost = cost + (delta_x ** 2 + delta_y ** 2) ** (0.5)
+
+        #Obstacle check
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
@@ -36,6 +42,8 @@ def zero_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
@@ -44,16 +52,19 @@ def zero_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     if round(new_theta) == 360:
         new_theta = 0
     if obs_match == True:
-        new_node = ((-1000, -1000, -1000), -1)
+        new_node = ((-1000, -1000, -1000), -1)   #dead node
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM1 to left wheel only for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm1_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -68,6 +79,8 @@ def rpm1_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         delta_y = 0.5 * r * (UL + UR) * round(math.sin(new_theta), 5) * dt
         delta_theta = (r / L) * (UR - UL) * dt
         cost = cost + (delta_x ** 2 + delta_y ** 2) ** (0.5)
+
+        #Obstacle check
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
@@ -77,8 +90,9 @@ def rpm1_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         if new_coord in obstacle_list:
             obs_match = True
             break
-    new_theta = new_theta * 180 / math.pi
 
+    #makes sure 0 <= theta < 360 degrees
+    new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
     elif new_theta < 0:
@@ -87,19 +101,18 @@ def rpm1_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM1 to left and right wheels for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm1_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -115,15 +128,18 @@ def rpm1_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         delta_theta = (r / L) * (UR - UL) * dt
         cost = cost + (delta_x ** 2 + delta_y ** 2) ** (0.5)
         new_x = new_x + delta_x
-
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
@@ -133,19 +149,18 @@ def rpm1_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM2 to right wheel only for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def zero_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -163,12 +178,16 @@ def zero_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
@@ -179,19 +198,18 @@ def zero_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM2 to left wheel only for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm2_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -209,35 +227,37 @@ def rpm2_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
     elif new_theta < 0:
         new_theta = new_theta - 360 * int(new_theta / 360 - 1)
-
     if round(new_theta) == 360:
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM1 to both wheels for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm2_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -255,35 +275,37 @@ def rpm2_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
     elif new_theta < 0:
         new_theta = new_theta - 360 * int(new_theta / 360 - 1)
-
     if round(new_theta) == 360:
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM1 to left wheel and RPM2 to the right wheel for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm1_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -301,12 +323,16 @@ def rpm1_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
@@ -316,19 +342,18 @@ def rpm1_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+# Applies RPM2 to left wheel and RPM1 to the right wheel for 1 minute.  As the curve path is calculated, checks to see if obstacle is encountered
+# If obstacle is encountered, sends back a "dead node" so the move won't be used
 def rpm2_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     new_x = parent_node[0]
     new_y = parent_node[1]
     new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -346,33 +371,34 @@ def rpm2_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = new_x + delta_x
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
+
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
             break
+
+    #makes sure 0 <= theta < 360 degrees
     new_theta = new_theta * 180 / math.pi
     if new_theta >= 360:
         new_theta = new_theta - 360 * int(new_theta / 360)
-
     elif new_theta < 0:
         new_theta = new_theta - 360 * int(new_theta / 360 - 1)
     if round(new_theta) == 360:
         new_theta = 0
     if obs_match == True:
         new_node = ((-1000, -1000, -1000), -1)
-        # parent_rounded_x = int(round(parent_node[0] * 2))
-        # parent_rounded_y = int(round(parent_node[1] * 2))
-        # theta_index = int(parent_node[2] / 30)
-        # visited_nodes[parent_rounded_y][parent_rounded_x][theta_index] = 1
     else:
         new_node = ((new_x, new_y, new_theta), cost)
     return new_node
 
-
+#Print function for the 1st move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_zero_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    #check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -382,15 +408,14 @@ def print_zero_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
     dt = move_time / 10
     UL = 0
     UR = rpm1
-
-    # x1=2*int(round(node[0]))
-    # y1=500-(int(round(node[1])))*2
 
     while t < move_time:
         t = t + dt
@@ -401,12 +426,14 @@ def print_zero_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -433,9 +460,11 @@ def print_zero_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 2nd move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm1_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -445,6 +474,8 @@ def print_rpm1_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -462,12 +493,14 @@ def print_rpm1_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -494,9 +527,11 @@ def print_rpm1_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 3rd move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm1_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -506,6 +541,8 @@ def print_rpm1_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -523,12 +560,14 @@ def print_rpm1_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -555,9 +594,11 @@ def print_rpm1_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 4th move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_zero_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -567,6 +608,8 @@ def print_zero_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -584,12 +627,14 @@ def print_zero_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -616,9 +661,11 @@ def print_zero_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 5th move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm2_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -628,6 +675,8 @@ def print_rpm2_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -645,12 +694,14 @@ def print_rpm2_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -677,9 +728,11 @@ def print_rpm2_zero(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 6th move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm2_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -689,6 +742,8 @@ def print_rpm2_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -706,12 +761,14 @@ def print_rpm2_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -738,9 +795,11 @@ def print_rpm2_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 7th move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm1_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -750,6 +809,8 @@ def print_rpm1_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -767,12 +828,14 @@ def print_rpm1_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -799,9 +862,11 @@ def print_rpm1_rpm2(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Print function for the 8th move case, checks for node exploration or forward path print
+#Does not print paths that intersect obstacls
 def print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
     obs_match = False
+    # check to see if node exploration or forward path is being printed so correct starting node is used
     if forward == False:
         new_x = coord[0]
         new_y = coord[1]
@@ -811,6 +876,8 @@ def print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_x = parent_node[0]
         new_y = parent_node[1]
         new_theta = parent_node[2] * math.pi / 180
+
+    #Begin move calculation
     t = 0
     r = wheel_radius
     L = wheel_dist
@@ -828,12 +895,14 @@ def print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
         new_y = new_y + delta_y
         new_theta = new_theta + delta_theta
 
+        #Obstacle check
         rounded_x = round(new_x)
         rounded_y = round(new_y)
         new_coord = (rounded_x, rounded_y)
         if new_coord in obstacle_list:
             obs_match = True
 
+    #after above obstacle check in path the rest of the function code prints either a) potential paths from node, or forward path
     if obs_match == False:
         if forward == False:
             new_x = coord[0]
@@ -860,9 +929,10 @@ def print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2):
             new_y = new_y + delta_y
             new_theta = new_theta + delta_theta
 
-
+#Performs back tracking and also creates forward path from start to finish
 def generate_path(reverse_path):
     next_node = []
+    #while loop performs back track from goal to start
     while next_node != "N/A":
         search_for = reverse_path[-1]
         reverse_path.append((cost_to_come[search_for]['parent node']))
@@ -873,6 +943,7 @@ def generate_path(reverse_path):
     # This loop creates the forward path to goal
     t = 0
     forward_path = []
+    #for loop reverses the back track to create the forward path
     for t in range(len(reverse_path)):
         forward_path.append(reverse_path.pop(-1))
 
@@ -880,7 +951,7 @@ def generate_path(reverse_path):
     forward_path.pop(0)
     return forward_path
 
-
+#Checks if popped node is in goal region
 def check_for_goal(parent_node, goal_node):
     SolutionFound = False
     x = parent_node[0]
@@ -891,8 +962,8 @@ def check_for_goal(parent_node, goal_node):
         SolutionFound = True
     return SolutionFound
 
-
-def obstacle_check(parent_node, clearance, obstacle_match):  # used to confirm user inputs
+# used to confirm user inputs are valid
+def obstacle_check(parent_node, clearance, obstacle_match):
     obstacle_match = True
     x = parent_node[0]
     y = parent_node[1]
@@ -902,22 +973,24 @@ def obstacle_check(parent_node, clearance, obstacle_match):  # used to confirm u
         if (x >= (200-clearance)) and (x <= (215+clearance)) and (y >= (-100)) and (y <= 25+clearance):  # Obstacle B check
             obstacle_match = True
         else:
-
             # Obstacle C1 check
             if ((x - 350)**2 + (y - 10)**2) <= (50+clearance)**2:
                 obstacle_match = True
             else:
-                obstacle_match = False
+                if (x <= -50 + clearance) or (x >= (550 - clearance)) or (y <= -100 + clearance) or (
+                        y >= (100 - clearance)):
+                    obstacle_match = True
+                else:
+                    obstacle_match = False
     return obstacle_match
 
-
+#Identifies all moves from the passed node and determines if they pass through an obstacle.  If they don't the print function is called.
 def nodes_to_plot(coord):
     parent_node = coord
 
     left_pivot_rpm1 = zero_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
     right_pivot_rpm1 = rpm1_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
     straight_rpm1 = rpm1_rpm1(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
-
     left_pivot_rpm2 = zero_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
     right_pivot_rpm2 = rpm2_zero(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
     straight_rpm2 = rpm2_rpm2(parent_node, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
@@ -931,17 +1004,15 @@ def nodes_to_plot(coord):
 
         # Setting up Rounded node to determine if node has been found
         action_node = action_dict[j][0]
-        # print("action node", action_node)
         action_x = action_node[0]
         action_y = action_node[1]
         # if statement checks if new node is outside map (can happen with larger step sizes)
-        if action_x >= 600 or action_x <= -50 or action_y >= 100 or action_y <= -100:
+        if action_x >= 550 or action_x <= -50 or action_y >= 100 or action_y <= -100:
             action_node = (-1000, -1000, -1000)
         action_theta = action_node[2]
         rounded_x = round(action_x)
         rounded_y = round(action_y)
         action_coord = (rounded_x, rounded_y)
-        # print("action coord", action_coord)
         theta_index = int(action_theta / 30)
         if action_coord in obstacle_list:  # obs_check==True:
             match = True
@@ -963,7 +1034,7 @@ def nodes_to_plot(coord):
             else:
                 print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
 
-
+#Plots forward path
 def forward_path_plot(coord):
     parent_node = coord
     move = cost_to_come[parent_node]['previous move']
@@ -985,21 +1056,19 @@ def forward_path_plot(coord):
     else:
         print_rpm2_rpm1(coord, wheel_radius, wheel_dist, move_time, rpm1, rpm2)
 
-
 do_nothing = False
 
 # Initialize the starting robot parameters
-
 clearance = 0
 start_cost = 0.0
-wheel_radius = 0.033*100
-robot_radius = 0.105*100
-wheel_dist = 0.16*100
-move_time = 1
+wheel_radius = 0.033*100 #cm
+robot_radius = 0.105*100 #cm
+wheel_dist = 0.16*100 #cm
+move_time = 1 #min
 
 theta_choices = set([330, 300, 270, 240, 210, 180, 150, 120, 90, 60, 30, 0])
-safety_zone = float(input('What is the minimum distance you want the robot to avoid obstacles by?\n'))
-# step_size=float(input('How far does the robot move each action?\n'))
+safety_zone = float(input('What is the minimum distance you want the robot to avoid obstacles by (centimeters)?\n'))
+
 rpm1 = float(input('What is the first RPM setting of the robot?\n'))
 rpm2 = float(input('What is the second RPM setting of the robot?\n'))
 
@@ -1020,9 +1089,8 @@ obstacles = []
 # Loop builds obstacle list and primes np array for visualization of the space
 for i in range(600):
     for j in range(200):
-        x = i - 50
-        y = 200 - j - 100
-
+        x = i - 50  #transforms coordinate system to numpy array coordinates
+        y = 200 - j - 100   #transforms coordinate system to numpy array coordinates
         if (x >= (100-(clearance))) and (x <= (115+clearance)) and (y >= -25-clearance) and (y <= (100)):  # Obstacle A check
             visited_nodes[j][i][:] = -1.0
             obstacles.append((x,y))
@@ -1037,13 +1105,11 @@ for i in range(600):
                     obstacles.append((x, y))
                 else:
                     # Walls check
-                    if (x <= -50 + clearance) or (x >= (600 - clearance)) or (y <= -100+clearance) or (
+                    if (x <= -50 + clearance) or (x >= (550 - clearance)) or (y <= -100+clearance) or (
                             y >= (100 - clearance)):
                         visited_nodes[j][i][:] = -1.0
                         obstacles.append((x, y))
                     else:
-                        # visited_nodes[j][i][:] = 0
-                        # cost_to_come[node]={'x': x,'y': y,'parent node': "N/A", 'cost to come': float('inf')}
                         visual_map[j, i, :] = [100, 100, 100]
 
 # obstacle_list used when new nodes are created to check if they are in obstacle space
@@ -1057,6 +1123,8 @@ cv2.destroyAllWindows()  # close all windows
 # Define start node by x,y, and theta coordinates
 bad_choice = True
 obstacle_match = True
+
+#Collect inputs from users and checks for valid inputs
 while bad_choice == True:
     start_x = float(input('What is the x coordinate in meters (positive or negative, 1 decimal place max) of your starting point?\n'))
     start_x = start_x*100
@@ -1159,7 +1227,7 @@ while SolutionFound != True:  # counter<100: #
         action_x = action_node[0]
         action_y = action_node[1]
         # if statement checks if new node is outside map (can happen with larger step sizes)
-        if action_x >= 600 or action_x <= -50 or action_y >= 100 or action_y <= -100:
+        if action_x >= 550 or action_x <= -50 or action_y >= 100 or action_y <= -100:
             action_node = (-1000, -1000, -1000)
         action_theta = action_node[2]
         rounded_x = int(round(action_x))
@@ -1173,11 +1241,13 @@ while SolutionFound != True:  # counter<100: #
         new_cost_to_come = parent_node_cost + action_dict[j][1]
         new_cost = new_cost_to_come + distance_to_goal
 
+        #Checks if node under investigation is in closed list, obstacle list, a dead node, or node has already been visited
         if action_dict[j][0] in closed_list_check or action_coord in obstacle_list or action_node == (-1000, -1000, -1000) or \
                 visited_nodes[rounded_y][rounded_x][theta_index] == 1:  # obs_check==True:
             match = True
 
         else:
+            #if action node is a dead node, identify node and surrounding coordinates as already visited
             if action_node == (-1000, -1000, -1000):
                 visited_nodes[rounded_y][rounded_x][theta_index] = 1
                 visited_nodes[rounded_y+1][rounded_x][theta_index] = 1
@@ -1189,11 +1259,13 @@ while SolutionFound != True:  # counter<100: #
                 visited_nodes[rounded_y+1][rounded_x-1][theta_index] = 1
                 visited_nodes[rounded_y-1][rounded_x-1][theta_index] = 1
             # Adds node to node map and open list if nearest node has not been visited (zero value)
-            if visited_nodes[rounded_y][rounded_x][theta_index] == 0:
+            if visited_nodes[rounded_y][rounded_x][theta_index] != 1:
                 cost_to_come[action_dict[j][0]] = {'x': action_x, 'y': action_y, 'theta': action_theta,
                                                    'parent node': parent_node, 'cost to come': new_cost_to_come,
                                                    'total cost': new_cost, 'previous move': j}
                 queue.append([cost_to_come[action_dict[j][0]]['total cost'], action_dict[j][0]])
+
+                # identifies node and surrounding coordinates as already visited
                 visited_nodes[rounded_y][rounded_x][theta_index] = 1
                 visited_nodes[rounded_y + 1][rounded_x][theta_index] = 1
                 visited_nodes[rounded_y - 1][rounded_x][theta_index] = 1
@@ -1229,7 +1301,7 @@ for i in range(len(closed_list)):
     x_arr = (200 - int(((coord[1]+100))))
     y_arr = int((coord[0]+50) )
     visual_map_explore[x_arr][y_arr] = 0
-    if counter == 10 or i == (len(closed_list) - 1):
+    if counter == 25 or i == (len(closed_list) - 1):
         cv2.imshow("Zeros matx", visual_map_explore)  # show numpy array
         cv2.waitKey(1)  # wait for ay key to exit window
         counter = 0
